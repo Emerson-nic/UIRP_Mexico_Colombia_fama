@@ -1,0 +1,7 @@
+#r
+.Rhistory
+.Rproj.user/
+
+#txt
+*.txt
+!doc-datos_extraidos.txt
