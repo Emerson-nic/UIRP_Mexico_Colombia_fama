@@ -1,0 +1,186 @@
+---
+title: "Explicación del modelo de Fama (1984)"
+output:
+  github_document:
+    toc: true
+    toc_depth: 2
+bibliography: ../references.bib
+---
+
+```{r config, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  dpi = 300,
+  fig.width = 8,
+  fig.height = 4.8
+)
+```
+
+```{r load-data, echo=FALSE}
+options(repos = c(CRAN = "https://packagemanager.posit.co/cran/2026-11-14"))
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(
+  tidyverse,
+  lmtest,
+  sandwich,
+  tseries
+)
+
+data <- readr::read_csv("../Data/Csv/UIP_Mexico_Colombia_Clean.csv")
+```
+
+## Generalidades
+
+Este documento analiza la relación entre las tasas de interés y el tipo de cambio en México y Colombia. Primero se presentan los conceptos principales y luego se muestran los resultados de la regresión de Fama.
+
+Las tasas de interés de Estados Unidos, México y Colombia corresponden a series de la OCDE consultadas en FRED [@fred_irstci_usm156n; @fred_irstci_mxm156n; @fred_colirstci01stm]. Para los tipos de cambio se utilizaron la serie MXN/USD de la Reserva Federal de Estados Unidos [@fred_exmxus] y la serie COP/USD de la OCDE [@fred_colccusma02stm], también consultadas en FRED.
+
+### Paridad Descubierta de Tasas de Interés (UIRP)
+
+La UIRP plantea que la diferencia entre la tasa de interés local y la extranjera debe corresponder a la depreciación esperada de la moneda local durante el mismo periodo. En otras palabras, una tasa local más alta debería compensarse con una depreciación esperada. Esta idea parte de supuestos como la movilidad de capitales y expectativas racionales.
+
+### Diferencial de tasas (spread)
+
+El diferencial se calcula como $\text{Spread}_t = i_t - i_t^*$, donde $i_t$ es la tasa doméstica e $i_t^*$ es la tasa extranjera. Por ejemplo, si la tasa de México es 5.55% y la de Estados Unidos es 2.4%, el diferencial es $3.15$ puntos porcentuales. Según la UIRP, un diferencial positivo implica una depreciación esperada de la moneda local en el mismo horizonte. En este análisis, las tasas y las variaciones cambiarias se expresan en términos anualizados.
+
+### Carry trade
+
+El *carry trade* consiste en pedir prestado en una moneda con tasas bajas e invertir en otra con tasas más altas. La estrategia puede generar ganancias, pero también implica el riesgo de que el tipo de cambio se mueva en contra del inversionista.
+
+## Modelo de Fama (1984)
+
+### Ecuación
+
+La UIRP plantea que el diferencial de tasas en el periodo $t$ debe igualar la variación esperada del tipo de cambio hasta el periodo siguiente:
+
+$$i_t - i_t^* = \mathbb{E}_t[\Delta s_{t+1}]$$
+
+Como la expectativa no se observa directamente, la regresión de Fama (1984) utiliza la variación cambiaria que efectivamente ocurrió:
+
+$$\Delta s_{t+1} = \mathbb{E}_t[\Delta s_{t+1}] + \varepsilon_{t+1}$$
+
+La ecuación que se estima es:
+
+$$\Delta s_{t+1} = \alpha + \beta (i_t - i_t^*) + \varepsilon_{t+1}$$
+
+Aquí, $s_t$ es el logaritmo del tipo de cambio, $\alpha$ es el intercepto y $\beta$ mide cómo se relaciona el diferencial de tasas con la variación cambiaria siguiente. El término $\varepsilon_{t+1}$ recoge otros factores que afectan al tipo de cambio.
+
+### Hipótesis de la UIRP
+
+La hipótesis nula plantea que la UIRP se cumple:
+
+$$H_0: \alpha = 0 \quad \text{y} \quad \beta = 1$$
+
+Esto significa que no hay un sesgo constante ($\alpha=0$) y que el diferencial de tasas corresponde uno a uno con la depreciación esperada ($\beta=1$). La hipótesis alternativa es que al menos una de estas condiciones no se cumple: $\alpha \ne 0$ o $\beta \ne 1$.
+
+### Supuestos y método de inferencia
+
+La interpretación del modelo parte de estos supuestos:
+
+- **Movilidad de capitales:** los inversionistas pueden elegir entre activos de distintos países.
+- **Expectativas racionales:** los errores de pronóstico no siguen un patrón predecible y no están relacionados con la información disponible, incluido el diferencial de tasas.
+- **Neutralidad al riesgo:** la versión básica de la UIRP supone que no se exige una prima adicional por el riesgo cambiario. Esto significa que la prima de riesgo es cero, no que el tipo de cambio esté libre de riesgo. Si existe una prima, la relación puede diferir de la predicción teórica.
+- **Series estacionarias:** las variables deben tener un comportamiento estable en el tiempo para evitar relaciones estadísticas engañosas. En este documento, las pruebas reportadas se aplican a las variaciones cambiarias; no se reportan pruebas de estacionariedad para los diferenciales de tasas.
+
+Para calcular los valores p se utilizan errores estándar Newey-West, que ajustan la inferencia ante heterocedasticidad y autocorrelación. Los valores p de la pendiente que se presentan en los resultados prueban si $\beta=0$; no prueban si $\beta=1$.
+
+## Resultados
+
+### Estacionariedad
+
+```{r estacionariedad}
+s_mex <- na.omit(data$mex_ds_lead)
+spread_mex <- na.omit(data$spread_mex_anual)
+
+tseries::adf.test(s_mex)
+tseries::kpss.test(s_mex, null = "Level")
+
+s_col <- na.omit(data$col_ds_lead)
+spread_col <- na.omit(data$spread_col_anual)
+
+tseries::adf.test(s_col)
+tseries::kpss.test(s_col, null = "Level")
+```
+
+Las pruebas ADF para las variaciones cambiarias de México y Colombia dan valores p menores a 0.05 ($0.0202$ y $0.0108$). Esto indica que se rechaza la hipótesis de raíz unitaria. Las pruebas KPSS tampoco rechazan la estacionariedad: los estadísticos ($0.1772$ y $0.1507$) están por debajo del valor crítico de 0.463. En el código se aplican estas pruebas a las variaciones cambiarias, no a los diferenciales de tasas.
+
+### Regresiones de Fama
+
+```{r Modelo Fama}
+fama_mex <- stats::lm(mex_ds_lead ~ spread_mex_anual, data = data)
+resumen_mex <- lmtest::coeftest(fama_mex, vcov = sandwich::NeweyWest(fama_mex))
+
+fama_col <- stats::lm(col_ds_lead ~ spread_col_anual, data = data)
+resumen_col <- lmtest::coeftest(fama_col, vcov = sandwich::NeweyWest(fama_col))
+```
+
+```{r interpretacion-MX}
+
+cat("=== Mexico ===")
+summary(fama_mex)
+print(resumen_mex)
+```
+
+#### México
+
+Para México, la pendiente estimada es $\hat{\beta} = 7.134$. Su error estándar Newey-West es $7.778$ y el valor p para probar si $\beta=0$ es $0.363$, por lo que no es estadísticamente distinta de cero. El intercepto tampoco es significativo ($\hat{\alpha} = -27.619$, $p = 0.283$).
+
+El modelo reporta `Multiple R-squared = 0.01181`. Esto indica un ajuste lineal bajo, pero no identifica por sí solo la causa de los movimientos del tipo de cambio.
+
+#### Colombia
+
+```{r interpertacion-COL}
+cat("=== Colombia ===")
+summary(fama_col)
+print(resumen_col)
+```
+
+Para Colombia, la pendiente estimada es $\hat{\beta} = -2.830$. Su error estándar Newey-West es $2.158$ y el valor p para probar si $\beta=0$ es $0.195$, así que tampoco es estadísticamente distinta de cero. El intercepto tampoco es significativo ($\hat{\alpha} = 15.639$, $p = 0.127$). El modelo reporta `Multiple R-squared = 0.0253`. Aunque la pendiente estimada es negativa, no se puede concluir que exista una relación negativa en la población.
+
+### Residuos
+
+```{r normalidad-residuos}
+# Residuos de ambos modelos
+res_mex <- stats::residuals(fama_mex)
+res_col <- stats::residuals(fama_col)
+
+cat("Mexico")
+stats::shapiro.test(res_mex)
+tseries::jarque.bera.test(res_mex)
+
+cat("Colombia")
+stats::shapiro.test(res_col)
+tseries::jarque.bera.test(res_col)
+```
+En México y Colombia, las pruebas de Shapiro-Wilk y Jarque-Bera rechazan la normalidad de los residuos ($p < 0.05$). Esto indica que los errores no siguen una distribución normal y es compatible con colas pesadas y episodios extremos, como los choques asociados a la pandemia de COVID-19. Dentro del marco de la UIRP, este resultado sugiere que el supuesto de neutralidad al riesgo puede ser poco realista para estas monedas.
+
+## Gráficos
+
+### México: tipo de cambio y diferencial de tasas
+
+![Figura 1: Tipo de cambio y diferencial de tasas para México.](../Plots/Figura1_Mexico_UIP.png)
+
+La línea azul muestra cuántos pesos mexicanos se necesitan para comprar un dólar: si sube, el peso se deprecia; si baja, se aprecia. La línea roja discontinua muestra el diferencial entre las tasas de México y Estados Unidos. El tipo de cambio alcanzó un máximo en 2020 y luego descendió, mientras el diferencial tuvo movimientos distintos a lo largo del periodo. Las líneas usan ejes verticales separados, así que sus alturas no se comparan directamente.
+
+### Colombia: tipo de cambio y diferencial de tasas
+
+![Figura 2: Tipo de cambio y diferencial de tasas para Colombia.](../Plots/Figura2_Colombia_UIP.png)
+
+La línea verde muestra cuántos pesos colombianos se necesitan para comprar un dólar. Su aumento hasta 2023 refleja una depreciación del peso, seguida de una moderación hacia el final del periodo. La línea naranja discontinua muestra el diferencial de tasas, que aumenta desde 2021–2022. El gráfico permite comparar la evolución de ambas series, pero no determinar si las tasas causaron los movimientos cambiarios.
+
+### Relación entre el diferencial y la variación cambiaria siguiente
+
+![Figura 3: Dispersión entre el diferencial de tasas y la variación del tipo de cambio en t+1.](../Plots/Figura3_regresion_UIP.png)
+
+Cada punto representa una observación mensual. El eje horizontal muestra el diferencial de tasas y el vertical, la variación cambiaria anualizada del mes siguiente. Las líneas muestran la relación estimada por las regresiones: positiva para México y negativa para Colombia. Los puntos están muy dispersos y las pendientes no son estadísticamente significativas con errores estándar Newey-West; por tanto, los resultados no permiten confirmar una relación lineal.
+
+## Conclusión
+
+Bajo la especificación lineal de Fama (1984), los resultados no encuentran respaldo predictivo ni de inferencia clara para la UIRP en esta muestra. R reporta `Multiple R-squared = 0.01181` para México y `Multiple R-squared = 0.0253` para Colombia. Las pendientes estimadas son 7.134 para México y -2.830 para Colombia, pero no son estadísticamente distintas de cero ($p = 0.363$ y $p = 0.195$, respectivamente).
+
+Las pruebas de normalidad rechazan la normalidad de los residuos. Esto es compatible con colas pesadas y choques extremos, como los asociados a la pandemia de COVID-19, y sugiere que la neutralidad al riesgo puede ser un supuesto poco realista. 
+
+# Bibliografia

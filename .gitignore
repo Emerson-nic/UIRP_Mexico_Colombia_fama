@@ -5,3 +5,4 @@
 #txt
 *.txt
 !doc-datos_extraidos.txt
+*.html

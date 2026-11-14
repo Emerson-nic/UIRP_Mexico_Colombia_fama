@@ -70,11 +70,12 @@ for (i in 2:length(list_variables)) {
 #add the spreands ----
 
 uip_spreands <- uip %>%
+  dplyr::arrange(date) %>%
   dplyr::mutate(
     spread_mex_anual = mex_interest_rate - usa_interest_rate,
     spread_col_anual = col_interest_rate - usa_interest_rate,
-    mex_ds_anual = (log(mex_exchange) - log(dplyr::lag(mex_exchange, 1))) * 100,
-    col_ds_anual = (log(col_exchange) - log(dplyr::lag(col_exchange, 1))) * 100
+    mex_ds_anual = (log(mex_exchange) - log(dplyr::lag(mex_exchange, 1))) * 1200,
+    col_ds_anual = (log(col_exchange) - log(dplyr::lag(col_exchange, 1))) * 1200
   )
 
 #plots ----
@@ -122,6 +123,14 @@ ggplot2::ggsave(
   height = 4.8,
   units = "in"
 )
+ggplot2::ggsave(
+  filename = "Plots/Figura1_Mexico_UIP.png",
+  plot = g1_mexico,
+  device = "png",
+  width = 8,
+  height = 4.8,
+  units = "in"
+)
 
 #colombia
 
@@ -157,10 +166,19 @@ ggplot2::ggsave(
   height = 4.8,
   units = "in"
 )
+ggplot2::ggsave(
+  filename = "Plots/Figura2_Colombia_UIP.png",
+  plot = g2_colombia,
+  device = "png",
+  width = 8,
+  height = 4.8,
+  units = "in"
+)
 
 # fama regresion ----
 
 uip_reg <- uip_spreands %>%
+  dplyr::arrange(date) %>%
   dplyr::mutate(
     mex_ds_lead = dplyr::lead(mex_ds_anual, 1),
     col_ds_lead = dplyr::lead(col_ds_anual, 1)
@@ -169,16 +187,19 @@ uip_reg <- uip_spreands %>%
 dplyr::glimpse(uip_reg)
 
 fama_mex <- stats::lm(mex_ds_lead ~ spread_mex_anual, data = uip_reg)
+resumen_mex <- lmtest::coeftest(fama_mex, vcov = sandwich::NeweyWest(fama_mex))
 
 summary(fama_mex)
+print(resumen_mex)
 
 fama_col <- stats::lm(col_ds_lead ~ spread_col_anual, data = uip_reg)
-
-
-resumen_mex <- lmtest::coeftest(fama_mex, vcov = sandwich::NeweyWest(fama_mex))
 resumen_col <- lmtest::coeftest(fama_col, vcov = sandwich::NeweyWest(fama_col))
 
-print(resumen_mex)
+summary(fama_col)
+print(resumen_col)
+
+
+
 
 
 g3_fama <- ggplot2::ggplot(uip_reg) +
@@ -198,6 +219,14 @@ ggplot2::ggsave(
   filename = "Plots/Figura3_regresion_UIP.pdf",
   plot = g3_fama,
   device = cairo_pdf,
+  width = 8,
+  height = 4.8,
+  units = "in"
+)
+ggplot2::ggsave(
+  filename = "Plots/Figura3_regresion_UIP.png",
+  plot = g3_fama,
+  device = "png",
   width = 8,
   height = 4.8,
   units = "in"
