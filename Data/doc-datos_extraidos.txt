@@ -1,0 +1,33 @@
+El periodo del estudio es de Enero 2018 - Diciembre 2023, los datos fueron extraido de:
+
+a) tasa de interes Immediate Rates (< 24 Hours)
+
+FRED
+
+1. USA
+https://fred.stlouisfed.org/series/IRSTCI01USM156N
+
+IRSTCI01USM156N - nombre del archivo
+
+2. Mexico
+https://fred.stlouisfed.org/series/IRSTCI01MXM156N
+
+IRSTCI01MXM156N - nombre del archivo
+
+3. Colombia
+https://fred.stlouisfed.org/series/COLIRSTCI01STM
+
+b) Tipo de cambio - promedio mensual
+
+Fred
+
+4. Pesos mexicano a dolares - mexico
+https://fred.stlouisfed.org/series/EXMXUS
+
+EXMXUS - nombre del archivo
+
+5. peso colombiano a dolares - colombia
+https://fred.stlouisfed.org/series/COLCCUSMA02STM
+
+COLCCUSMA02STM - nombre del archivo
+
