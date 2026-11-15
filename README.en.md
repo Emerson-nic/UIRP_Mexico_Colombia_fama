@@ -40,4 +40,3 @@ BibTeX references for all five FRED series are in [`references.bib`](references.
 - `Plots/`: charts for Mexico, Colombia, and the Fama regression in PDF and PNG formats.
 - `Doc/Fama_explicacion.Rmd`: document describing the methodology, results, and charts.
 - `references.bib`: BibTeX references for the data series.
-- `organizaci_n_del_ensayo_grupo_4.txt`: project context and group work assignments.

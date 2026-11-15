@@ -40,4 +40,3 @@ Las referencias de las cinco series de FRED están en [`references.bib`](referen
 - `Plots/`: gráficos de México, Colombia y la regresión de Fama, en PDF y PNG.
 - `Doc/Fama_explicacion.Rmd`: documento con la metodología, resultados y explicación de los gráficos.
 - `references.bib`: referencias BibTeX para las series de datos utilizadas.
-- `organizaci_n_del_ensayo_grupo_4.txt`: contexto y organización del trabajo del grupo.
