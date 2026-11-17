@@ -6,3 +6,8 @@
 *.txt
 !doc-datos_extraidos.txt
 *.html
+
+#tex
+*.bbl
+*.nav
+*.snm
